@@ -96,11 +96,40 @@ int is_dir(const char *path) {
     return S_ISDIR(path_stat.st_mode);
 }
 
-void remove_last_char(char *str) {
+void remove_last_char(char* str) {
   if (str != NULL && str[0] != '\0') {
     size_t len = strlen(str);
     str[len - 1] = '\0';
   }
+}
+
+void truncate_spaces(char* str) {
+    for (int i = 0; ; i++) {
+        if (str[i] == ' '){
+            str[i] = '\0';
+            return;
+        }
+
+        if (str[i] == '\0'){
+            return;
+        }
+
+    }
+}
+
+void go_back_dir() {
+    if (strcmp(g_current_directory, "/") == 0)
+        return;
+
+    int length = strlen(g_current_directory);
+    g_current_directory[length - 1] = '\0';
+
+    for (int i = length - 1; i >= 0; i--) {
+        if (g_current_directory[i] == '/') {
+            g_current_directory[i+1] = '\0';
+            return;
+        }
+    }
 }
 
 void ls () {
@@ -125,7 +154,18 @@ void ls () {
 }
 
 void cd (char directory [256]) {
-    //Try the directory as is:
+    
+    // Edge cases
+    if (strcmp(directory, ".") == 0) {
+        return;
+    }
+
+    if (strcmp(directory, "..") == 0) {
+        go_back_dir();
+        return;
+    }
+
+    // Try the directory as is:
     char directory_buffer [2048];
     struct stat s = {0};
 
@@ -140,6 +180,8 @@ void cd (char directory [256]) {
     // Try the directory where we are located:
     strcpy(directory_buffer, g_current_directory);
     strcat(directory_buffer, directory);
+
+    printf("looking for: %s \n", directory_buffer);
 
     if (!stat(directory, &s)) {
         printf("modification!");
