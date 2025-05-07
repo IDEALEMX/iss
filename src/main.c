@@ -3,8 +3,14 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <dirent.h>
+
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+
 // GLOBAL VARIABLES
-char g_current_directory [2048] = "/home/ideale/";
+char g_current_directory [2048] = "/home/ideale/cProjects/iss/src/";
 
 void print_prompt() {
     char username [256];
@@ -40,12 +46,21 @@ int parse_into_words(char* to_be_parsed_string, char word_array [64][256]) {
         }
 
         // For any general character
+        
+        if (current_char == '\n'){
+            continue;
+        }
+
         if (current_char != ' ' && current_char != '\0') {
             current_word_buffer[current_word_char] = current_char;
             current_word_char ++;
             continue;
         }
-        
+ 
+        if (current_char == ' ' && current_word_char == 0) {
+            continue;
+        }       
+
         // If we find the end of a word
         current_word_buffer[current_word_char] = '\0';
 
@@ -57,6 +72,7 @@ int parse_into_words(char* to_be_parsed_string, char word_array [64][256]) {
         if (current_char == '\0') {
             break;
         }
+
     }
     return current_word_number;
 }
@@ -68,6 +84,72 @@ void print_parsed_words(char words[64][256], int n) {
     }
 }
 
+int is_file(const char *path) {
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
+
+int is_dir(const char *path) {
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISDIR(path_stat.st_mode);
+}
+
+void remove_last_char(char *str) {
+  if (str != NULL && str[0] != '\0') {
+    size_t len = strlen(str);
+    str[len - 1] = '\0';
+  }
+}
+
+void ls () {
+    DIR *dir;
+    struct dirent *ent;
+    dir = opendir(g_current_directory);
+    if (dir != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            char item_dir [2048];
+            strcpy(item_dir, g_current_directory);
+            strcat(item_dir, ent->d_name);
+
+            if (is_file(item_dir))
+                printf("*FILE*  %s\n", ent->d_name);
+            else if (is_dir(item_dir))
+                printf("*DIR*   %s\n", ent->d_name);
+            else
+                printf("*OTHER* %s\n", ent->d_name);
+        }
+        closedir(dir);
+    }
+}
+
+void cd (char directory [256]) {
+    //Try the directory as is:
+    char directory_buffer [2048];
+    struct stat s = {0};
+
+    strcpy(directory_buffer, directory);
+
+    // If the file exists:
+    if (!stat(directory, &s)) {
+        strcpy(g_current_directory, directory_buffer);
+        return;
+    }
+
+    // Try the directory where we are located:
+    strcpy(directory_buffer, g_current_directory);
+    strcat(directory_buffer, directory);
+
+    if (!stat(directory, &s)) {
+        printf("modification!");
+        strcpy(g_current_directory, directory_buffer);
+        return;
+    }
+
+    // If both options fail
+    fprintf(stderr, "cd: dir not found! \n");
+}
 
 // Contains the main program loop
 int main() {
@@ -79,8 +161,51 @@ int main() {
         // Parsing section
         char word_array [64][256];
         int word_number = parse_into_words(user_input, word_array);
-        //print_parsed_words(word_array, word_number);
+
+        // Iss specific commands
+        if (strcmp(word_array[0], "exit") == 0) {
+            break;
+        }
+
+        if (strcmp(word_array[0], "ls") == 0) {
+            if (word_number > 1) {
+                fprintf(stderr, "ls: too many arguments! \n");
+                continue;
+            }
+            ls();
+            continue;
+        }
+
+        if (strcmp(word_array[0], "cd") == 0) {
+            if (word_number > 2) {
+                fprintf(stderr, "cd: too many arguments! \n");
+                continue;
+            }
+            
+            if (word_number == 1) {
+                fprintf(stderr, "cd: too few arguments! \n");
+                continue;
+            }
+            cd(word_array[1]);
+
+            continue;
+        }
         
+        /*
+        int rc = fork();
+        
+        // Fork failed
+        if (rc < 0) {
+            printf("iss: program failed to execute! \n");
+        // Child process
+        } else if (rc == 0) {
+            execl("/home/ideale/cProjects/linkedList/test", "foo");
+        // Parent process
+        } else {
+            int status;
+            wait(&status);
+        }
+        */
     }
 }
 
