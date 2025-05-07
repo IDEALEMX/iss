@@ -180,11 +180,9 @@ void cd (char directory [256]) {
     // Try the directory where we are located:
     strcpy(directory_buffer, g_current_directory);
     strcat(directory_buffer, directory);
+    strcat(directory_buffer, "/");
 
-    printf("looking for: %s \n", directory_buffer);
-
-    if (!stat(directory, &s)) {
-        printf("modification!");
+    if (!stat(directory_buffer, &s)) {
         strcpy(g_current_directory, directory_buffer);
         return;
     }
