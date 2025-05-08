@@ -8,11 +8,11 @@ execute commands
 execute commands with arguments  
 
 custom *cd* command  
-*source* command used to apply changes in the .issrc file *
+*iss* command used to apply changes in the .issrc file *
 
 -- valid settings in ~/.issrc --  
 path *path*
-alias *name_to_alias* *program_to_execute* *
+alias *name_to_alias* *program_to_execute*
 
 -- the following require spaces inbetween commands --  
 run programs secuentially with + (like ; in bash) *  
