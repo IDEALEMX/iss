@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 /*
  * given a string, an array of strings where to store the parsed data
@@ -15,6 +16,8 @@ int parse_into_words(char* to_be_parsed_string, char word_array [64][256], char 
     int current_word_char = 0;
 
     int current_word_number = 0;
+
+    bool inside_string = false;
 
     // return a 0 if input was empty
     if (to_be_parsed_string[0] == '\0')
@@ -38,7 +41,12 @@ int parse_into_words(char* to_be_parsed_string, char word_array [64][256], char 
             continue;
         }
 
-        if (current_char != char_to_be_skipped && current_char != '\0') {
+        if (current_char == '"'){
+            inside_string = !inside_string;
+            continue;
+        }
+
+        if ((current_char != char_to_be_skipped || inside_string) && current_char != '\0') {
             current_word_buffer[current_word_char] = current_char;
             current_word_char ++;
             continue;

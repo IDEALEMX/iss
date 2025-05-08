@@ -8,7 +8,7 @@ execute commands
 execute commands with arguments  
 
 custom *cd* command  
-*iss* command used to apply changes in the .issrc file *
+*iss* command used to apply changes in the .issrc file
 
 -- valid settings in ~/.issrc --  
 path *path*
