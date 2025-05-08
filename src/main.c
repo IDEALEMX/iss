@@ -12,7 +12,6 @@
 #include "parsing.h"
 
 // global variables
-char g_current_directory [2048] = "/home/ideale/";
 char g_paths [256][256];
 int g_number_of_paths = 0;
 
@@ -48,15 +47,30 @@ int is_dir(const char *path) {
     return S_ISDIR(path_stat.st_mode);
 }
 
-void execute_program(char program_path [2048], char arg1 [256], char arg2 [256], char arg3 [256], char arg4 [256]) {
+void print_pointer_array(char* array [], int number_of_element) {
+    for (int i = 0; i < number_of_element; i++) {
+        printf("index: %d, value: %s \n", i, array[i]);
+    }
+}
+
+void execute_program(char* args[256]) {
     int rc = fork();
+
+    // parse input for ~
+
+    for (int i = 0; ;i++){
+        if(args[i] == NULL)
+            break;
+
+        replace_wave_char(args[i]);
+    }
 
     // fork failed
     if (rc < 0) {
         printf("iss: program failed to execute! \n");
         // child process
     } else if (rc == 0) {
-        execl(program_path, arg1, arg2, arg3, arg4);
+        execvp(args[0], args);
         // parent process
     } else {
         int status;
@@ -64,51 +78,27 @@ void execute_program(char program_path [2048], char arg1 [256], char arg2 [256],
     }
 }
 
-void process_command(char command [256], char arg1 [256], char arg2 [256], char arg3 [256], char arg4 [256]) {
+void process_command(char* word_list []) {
+    char* command = word_list[0];
     char first_character = command[0];
-
-    // handdle full path
-    if(first_character == '/') {
-        execute_program(command, arg1, arg2, arg3, arg4);
-        return;
-    }
-
-    // handdle path starting with ~/
     char second_character = command[1];
-    if(first_character == '~' && second_character == '/') {
-        char username [256];
-        getlogin_r(username, 256);
-
-        char buffer_string [512];
-        sprintf(buffer_string, "/home/%s/", username);
-
-        strcat(buffer_string, &command[2]);
-
-        execute_program(buffer_string, arg1, arg2, arg3, arg4);
-        return;
-    }
-
-    // handdle path starting with ./
-    if(first_character == '.' && second_character == '/') {
-        char buffer_string [512];
-
-        strcpy(buffer_string, g_current_directory);
-        strcat(buffer_string, &command[2]);
-
-        execute_program(buffer_string, arg1, arg2, arg3, arg4);
-        return;
-    }
-
-    // handdle path starting with ../
     char third_character = command[2];
-    if(first_character == '.' && second_character == '.' && third_character == '/') {
-        char buffer_string [512];
 
-        strcpy(buffer_string, g_current_directory);
-        strcat(buffer_string, "../");
-        strcat(buffer_string, &command[2]);
+    // handdle path possibilities
+    if(    first_character == '/'
+        || first_character == '.' && second_character == '/'
+        || first_character == '.' && second_character == '.' && third_character == '/'
+        || first_character == '~' && second_character == '/'
+      ) {
+        replace_wave_char(command);
+        execute_program(word_list);
+        return;
+    }
 
-        execute_program(buffer_string, arg1, arg2, arg3, arg4);
+    // handle "cd" command case
+    if (strcmp(command, "cd") == 0) {
+        replace_wave_char(word_list[1]);
+        chdir(word_list[1]);
         return;
     }
 
@@ -117,7 +107,7 @@ void process_command(char command [256], char arg1 [256], char arg2 [256], char 
         fprintf(stderr, "iss: no path variables! \n");
         return;
     }
-
+    
     // look for command in path variables
     for (int i = 0; i < g_number_of_paths; i++) {
         FILE *file;
@@ -125,16 +115,16 @@ void process_command(char command [256], char arg1 [256], char arg2 [256], char 
         strcpy(file_buffer, g_paths[i]);
         strcat(file_buffer, command);
 
-        // printf("attempting: %s \n", file_buffer);
+        //printf("attempting: %s \n", file_buffer);
 
         if((file = fopen(file_buffer,"r")) != NULL) {
-            execute_program(file_buffer, arg1, arg2, arg3, arg4);
+            strcpy(command, file_buffer);
+            execute_program(word_list);
             return;
         } 
     }
         
     fprintf(stderr, "iss: command not found! \n");
-
 }
 
 // contains the main program loop
@@ -153,7 +143,14 @@ int main() {
         if (word_number == 1 && word_array[0][0] == '\0')
             continue;
 
-        process_command(word_array[0], word_array[1], word_array[2], word_array[3], word_array[4]);
+        // calculating pointer array
+        char* pointer_array [64];
+        for (int i = 0; i < word_number; i++) {
+            pointer_array[i] = word_array[i];
+        }
+        pointer_array[word_number] = NULL;
+
+        process_command(pointer_array);
     }
 }
 

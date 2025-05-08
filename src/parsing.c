@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 /*
  * given a string, an array of strings where to store the parsed data
@@ -68,5 +69,20 @@ void print_parsed_words(char words[64][256], int n) {
     for (int i = 0; i<n; i++) {
         printf("%s \n", words[i]);
     }
+}
+
+void replace_wave_char(char* string) {
+    if ((string [0] != '~' || string[1] != '/') && (string [0] != '~' || string[1] != '\0'))
+        return;
+
+    char username [256];
+    getlogin_r(username, 256);
+
+    char buffer_string [512];
+    sprintf(buffer_string, "/home/%s/", username);
+
+    strcat(buffer_string, &string[2]);
+
+    strcpy(string, buffer_string);
 }
 
