@@ -11,13 +11,62 @@
 
 #include "parsing.h"
 
+struct alias {
+    char alias_name [256];
+    char command_path [256];
+};
+
 // global variables
-char g_paths [256][256];
+char g_paths[256][256];
 int g_number_of_paths = 0;
 
-void load_paths() {
-    strcpy(g_paths[0], "/home/ideale/scripts/");
-    strcpy(g_paths[1], "/bin/");
+struct alias g_aliases[256];
+int g_number_of_aliases = 0;
+
+void load_from_config() {
+    g_number_of_paths = 0;
+    g_number_of_aliases = 0;
+
+    char line[512];
+
+    char config_path[256] = "~/.issrc";
+    replace_wave_char(config_path);
+
+    FILE* config_file = fopen(config_path, "r");
+
+    if (config_file != NULL) {
+        while (fgets(line, sizeof(line), config_file)) {
+            char slots[3][256];
+            int input_number = parse_into_words(line, slots, ' ');
+
+            if (input_number != 2 && input_number != 3)
+                continue;
+
+            if (strcmp(slots[0], "path:") == 0) {
+                replace_wave_char(slots[1]);
+                strcpy(g_paths[g_number_of_paths], slots[1]);
+                g_number_of_paths ++;
+                //printf("loaded path: %s \n", slots[1]);
+                continue;
+            }
+            
+            if (strcmp(slots[0], "alias:") == 0) {
+                replace_wave_char(slots[2]);
+                struct alias new_alias;
+                strcpy(new_alias.alias_name, slots[1]);
+                strcpy(new_alias.command_path, slots[2]);
+                g_aliases[g_number_of_aliases] = new_alias;
+                g_number_of_aliases ++;
+                //printf("loaded alias: %s, for executing: %s \n", new_alias.alias_name, new_alias.command_path);
+                continue;
+            }
+
+        }
+        fclose(config_file);
+    }
+    else {
+        fprintf(stderr, "iss: failed to load user config! \n");
+    }
 
     g_number_of_paths = 2;
 }
@@ -101,6 +150,13 @@ void process_command(char* word_list []) {
         chdir(word_list[1]);
         return;
     }
+    
+    // handle "source" command case
+    if (strcmp(command, "iss") == 0) {
+        printf("iss: loading ~/.issrc file \n");
+        load_from_config();
+        return;
+    }
 
     // throw error if there are no path variables
     if (g_number_of_paths == 0) {
@@ -108,6 +164,16 @@ void process_command(char* word_list []) {
         return;
     }
     
+    // look for aliases
+    for (int i = 0; i < g_number_of_aliases; i++) {
+        //printf("attempting: %s \n", g_aliases[i].command_path);
+        if (strcmp(g_aliases[i].alias_name, command) == 0) {
+            strcpy(command, g_aliases[i].command_path);
+            execute_program(word_list);
+            return;
+        }
+    }
+
     // look for command in path variables
     for (int i = 0; i < g_number_of_paths; i++) {
         FILE *file;
@@ -129,7 +195,7 @@ void process_command(char* word_list []) {
 
 // contains the main program loop
 int main() {
-    load_paths();
+    load_from_config();
 
     while(true) {
         print_prompt();
