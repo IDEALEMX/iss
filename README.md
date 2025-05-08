@@ -7,8 +7,8 @@ execute commands *
 execute commands with arguments *  
 add PATH="" variables in iss.config, in your .config file *  
 
-custom cd command*  
-custom ls command*  
+custom cd command *  
+custom ls command *  
 
 -- the following require spaces inbetween commands --  
 run programs secuentially with + (like ; in bash) *  
