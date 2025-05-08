@@ -12,12 +12,38 @@
 #include "parsing.h"
 
 // global variables
-char g_paths [256][256];
+char g_paths[256][256];
 int g_number_of_paths = 0;
 
-void load_paths() {
-    strcpy(g_paths[0], "/home/ideale/scripts/");
-    strcpy(g_paths[1], "/bin/");
+void load_from_config() {
+    char line[512];
+
+    char config_path[256] = "~/.issrc";
+    replace_wave_char(config_path);
+
+    FILE* config_file = fopen(config_path, "r");
+
+    if (config_file != NULL) {
+        while (fgets(line, sizeof(line), config_file)) {
+            char slots[2][256];
+            int input_number = parse_into_words(line, slots, ' ');
+
+            if (input_number != 2)
+                continue;
+
+            if (strcmp(slots[0], "path:") == 0) {
+                replace_wave_char(slots[1]);
+                strcpy(g_paths[g_number_of_paths], slots[1]);
+                g_number_of_paths ++;
+                //printf("loaded path: %s \n", slots[1]);
+                continue;
+            }
+        }
+        fclose(config_file);
+    }
+    else {
+        fprintf(stderr, "iss: failed to load user config! \n");
+    }
 
     g_number_of_paths = 2;
 }
@@ -129,7 +155,7 @@ void process_command(char* word_list []) {
 
 // contains the main program loop
 int main() {
-    load_paths();
+    load_from_config();
 
     while(true) {
         print_prompt();
