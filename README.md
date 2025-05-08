@@ -4,6 +4,7 @@ ideale's Simple Shell is a minimal shell made on the c language
 # supported featues:
 (feature will end with a * if not yet added)
 execute commands *
+execute commands with arguments *
 add PATH="" variables in iss.config, in your .config file *
 
 custom cd command*
